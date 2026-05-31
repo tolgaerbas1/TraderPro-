@@ -5,14 +5,17 @@ import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { AppShell } from "@/components/layout/sidebar";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useToast } from "@/components/ui/toast";
 import type { PortfolioSummary, Order, ClosedTrade } from "@/types";
 
 const COLORS = ["#059669", "#0ea5e9", "#8b5cf6", "#f59e0b"];
 
 export default function PortfolioPage() {
   const { t } = useLanguage();
+  const { toast } = useToast();
   const [portfolio, setPortfolio] = useState<PortfolioSummary | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [closedTrades, setClosedTrades] = useState<ClosedTrade[]>([]);
@@ -34,7 +37,7 @@ export default function PortfolioPage() {
 
   async function submitOrder(e: React.FormEvent) {
     e.preventDefault();
-    await fetch("/api/portfolio", {
+    const res = await fetch("/api/portfolio", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -44,13 +47,26 @@ export default function PortfolioPage() {
         type: "market",
       }),
     });
+    const data = await res.json();
+    if (data.order) {
+      toast(`${form.side === "buy" ? "Bought" : "Sold"} ${form.quantity} ${form.symbol} @ ${formatCurrency(data.order.fillPrice)}`);
+    } else {
+      toast("Order failed", "error");
+    }
     loadPortfolio();
   }
 
   if (loading || !portfolio) {
     return (
       <AppShell>
-        <p className="text-zinc-500">Loading...</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[84px]" />
+            ))}
+          </div>
+          <Skeleton className="h-[400px]" />
+        </div>
       </AppShell>
     );
   }

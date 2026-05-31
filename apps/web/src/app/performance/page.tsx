@@ -23,6 +23,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import { exportTradesCsv } from "@/lib/export-csv";
 import type { PerformanceReport, Order } from "@/types";
 import { Download, TrendingUp, TrendingDown } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const COLORS = ["#059669", "#0ea5e9", "#8b5cf6", "#f59e0b", "#ef4444", "#64748b"];
 
@@ -58,7 +59,17 @@ export default function PerformancePage() {
   if (loading || !report) {
     return (
       <AppShell>
-        <p className="text-zinc-500">Loading...</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-[84px]" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Skeleton className="h-[380px] lg:col-span-2" />
+            <Skeleton className="h-[380px]" />
+          </div>
+        </div>
       </AppShell>
     );
   }

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { AppShell } from "@/components/layout/sidebar";
 import { Card, ChangeCell, ConsensusBadge } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { formatCurrency } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
 import { SECTORS } from "@/lib/stocks";
@@ -11,6 +13,7 @@ import type { StockQuote, StockAnalysis, ConsensusAction } from "@/types";
 
 export default function RadarPage() {
   const { t, lang } = useLanguage();
+  const { toast } = useToast();
   const [filters, setFilters] = useState({
     peMax: "",
     roeMin: "",
@@ -42,6 +45,7 @@ export default function RadarPage() {
     setResults(data.results ?? []);
     setScanned(true);
     setLoading(false);
+    toast(`${data.results?.length ?? 0} ${t.radar.matches}`);
   }
 
   function clearFilters() {
@@ -139,9 +143,9 @@ export default function RadarPage() {
           className="lg:col-span-3"
         >
           {!scanned ? (
-            <p className="text-zinc-500">Filtreleri ayarlayıp &quot;{t.radar.scan}&quot; butonuna tıklayın.</p>
+            <p className="text-zinc-500">{lang === "tr" ? "Filtreleri ayarlayıp \"Tara\" butonuna tıklayın." : `Adjust filters and click "${t.radar.scan}".`}</p>
           ) : results.length === 0 ? (
-            <p className="text-zinc-500">No matches found.</p>
+            <p className="text-zinc-500">{lang === "tr" ? "Eşleşme bulunamadı." : "No matches found."}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

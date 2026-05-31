@@ -10,7 +10,11 @@ export default function SettingsPage() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
+    const theme = localStorage.getItem("traderpro-theme");
+    const prefersDark = matchMedia("(prefers-color-scheme: dark)").matches;
+    const isDark = theme === "dark" || (!theme && prefersDark);
+    if (isDark) document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
     setDark(isDark);
   }, []);
 
@@ -19,14 +23,6 @@ export default function SettingsPage() {
     setDark((d) => !d);
     localStorage.setItem("traderpro-theme", dark ? "light" : "dark");
   }
-
-  useEffect(() => {
-    const theme = localStorage.getItem("traderpro-theme");
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-      setDark(true);
-    }
-  }, []);
 
   return (
     <AppShell>

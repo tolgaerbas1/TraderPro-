@@ -20,6 +20,24 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.35s ease-out;
+  --animate-slide-in-right: slide-in-right 0.25s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 body {
@@ -28,14 +46,18 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+main > :first-child {
+  animation: fade-in 0.3s ease-out;
+}
+
 .input-field {
   width: 100%;
-  rounded: 0.5rem;
   border: 1px solid var(--border);
   background: var(--card);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   border-radius: 0.5rem;
+  transition: outline 0.15s;
 }
 
 .input-field:focus {
@@ -43,10 +65,12 @@ body {
   outline-offset: 1px;
 }
 
-/* react-grid-layout */
-.react-grid-item.react-grid-placeholder {
-  background: #05966933;
-  border-radius: 0.75rem;
+select.input-field {
+  cursor: pointer;
+}
+
+button {
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
 .react-grid-item > .react-resizable-handle::after {
@@ -55,4 +79,20 @@ body {
 
 .layout {
   min-height: 600px;
+}
+
+@media (max-width: 1023px) {
+  .layout .react-grid-item {
+    width: 100% !important;
+    transform: none !important;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+  }
+  .layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    height: auto !important;
+  }
 }

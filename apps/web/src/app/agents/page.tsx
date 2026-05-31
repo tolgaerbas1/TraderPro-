@@ -19,9 +19,12 @@ import type { FullStockAnalysis, AgentAccuracyStat, DailyBriefing } from "@/lib/
 import type { AgentWeights } from "@/lib/agents/types";
 import { DEFAULT_WEIGHTS } from "@/lib/agents/types";
 import { Bot, RefreshCw, ShieldAlert } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 
 export default function AgentsPage() {
   const { t, lang, bilingual } = useLanguage();
+  const { toast } = useToast();
   const [analyses, setAnalyses] = useState<FullStockAnalysis[]>([]);
   const [accuracy, setAccuracy] = useState<AgentAccuracyStat[]>([]);
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
@@ -52,6 +55,7 @@ export default function AgentsPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ weights }),
     });
+    toast("Agent weights saved");
     await load();
     setSaving(false);
   }
@@ -61,7 +65,14 @@ export default function AgentsPage() {
   if (loading) {
     return (
       <AppShell>
-        <p className="text-zinc-500">Loading...</p>
+        <div className="space-y-6">
+          <Skeleton className="h-10 w-56" />
+          <Skeleton className="h-[160px]" />
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Skeleton className="h-[300px]" />
+            <Skeleton className="h-[300px] lg:col-span-2" />
+          </div>
+        </div>
       </AppShell>
     );
   }

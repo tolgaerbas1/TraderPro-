@@ -12,6 +12,7 @@ import {
   TopMoversWidget,
   DailyBriefingWidget,
 } from "./widgets";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis, MarketIndex } from "@/types";
 import type { DailyBriefing } from "@/lib/agents/types";

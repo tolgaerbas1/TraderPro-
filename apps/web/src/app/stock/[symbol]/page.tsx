@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/sidebar";
 import { Card, ChangeCell } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AgentPanel } from "@/components/agents/agent-panel";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
@@ -38,7 +39,19 @@ export default function StockDetailPage({ params }: { params: Promise<{ symbol: 
   if (!quote || !analysis) {
     return (
       <AppShell>
-        <p className="text-zinc-500">Loading {symbol}...</p>
+        <div className="space-y-6">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-10 w-64" />
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-[60px]" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Skeleton className="h-[340px] lg:col-span-2" />
+            <Skeleton className="h-[340px]" />
+          </div>
+        </div>
       </AppShell>
     );
   }
