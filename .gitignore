@@ -1,0 +1,12 @@
+node_modules/
+data/
+!apps/web/data/.gitkeep
+.next/
+dist/
+.env
+.env.local
+*.pyc
+__pycache__/
+.venv/
+*.log
+.DS_Store
