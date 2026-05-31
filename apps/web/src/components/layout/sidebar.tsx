@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
+import { CommandPalette } from "@/components/ui/command-palette";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, key: "dashboard" as const },
@@ -135,6 +136,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </button>
 
         <main className="min-h-screen p-6 pt-14 lg:ml-56 lg:pt-6">{children}</main>
+        <CommandPalette />
       </div>
     </SidebarContext.Provider>
   );

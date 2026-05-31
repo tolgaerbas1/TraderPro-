@@ -3,6 +3,8 @@ import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
 import { getWatchlistQuotes, getMarketIndices, runRadarScan } from "@/lib/market-data";
 import { analyzeWatchlist, buildBriefingFromAnalyses } from "@/lib/agents/engine";
 import { getBroker } from "@/lib/broker/instance";
+import { getNewsFeed } from "@/lib/news/data";
+import { INVESTORS } from "@/lib/investors/data";
 
 async function getDashboardData() {
   const [quotes, indices, radarResults, fullAnalyses] = await Promise.all([
@@ -35,12 +37,21 @@ async function getDashboardData() {
   const briefing = await buildBriefingFromAnalyses(fullAnalyses);
   const b = await getBroker();
   const portfolio = await b.getPortfolio();
+  const news = getNewsFeed().slice(0, 20);
+  const investors = INVESTORS.map(({ id, name, firm, topHoldings }) => ({
+    id,
+    name,
+    firm,
+    topSymbol: topHoldings[0]?.symbol ?? null,
+  }));
 
   return {
     quotes,
     indices,
     analyses,
     briefing,
+    news,
+    investors,
     radarCount: radarResults.length,
     portfolio: {
       totalValue: portfolio.totalValue,

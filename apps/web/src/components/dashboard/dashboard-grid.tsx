@@ -11,11 +11,14 @@ import {
   PortfolioWidget,
   TopMoversWidget,
   DailyBriefingWidget,
+  NewsFeedWidget,
+  InvestorsWidget,
 } from "./widgets";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis, MarketIndex } from "@/types";
 import type { DailyBriefing } from "@/lib/agents/types";
+import type { NewsItem } from "@/lib/news/types";
 
 const GridLayout = dynamic(
   () => import("react-grid-layout/legacy").then((m) => m.default),
@@ -26,13 +29,15 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
-  { i: "market", x: 0, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
-  { i: "portfolio", x: 4, y: 0, w: 4, h: 3, minW: 3, minH: 2 },
-  { i: "watchlist", x: 8, y: 0, w: 4, h: 5, minW: 3, minH: 3 },
-  { i: "movers", x: 0, y: 3, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "agents", x: 4, y: 3, w: 4, h: 4, minW: 3, minH: 3 },
-  { i: "briefing", x: 4, y: 7, w: 4, h: 3, minW: 3, minH: 2 },
-  { i: "radar", x: 8, y: 7, w: 4, h: 3, minW: 3, minH: 2 },
+  { i: "market", x: 0, y: 0, w: 3, h: 3, minW: 3, minH: 2 },
+  { i: "portfolio", x: 3, y: 0, w: 3, h: 3, minW: 3, minH: 2 },
+  { i: "news", x: 6, y: 0, w: 3, h: 5, minW: 3, minH: 3 },
+  { i: "investors", x: 9, y: 0, w: 3, h: 3, minW: 3, minH: 2 },
+  { i: "watchlist", x: 0, y: 3, w: 3, h: 5, minW: 3, minH: 3 },
+  { i: "movers", x: 3, y: 3, w: 3, h: 4, minW: 3, minH: 3 },
+  { i: "agents", x: 9, y: 3, w: 3, h: 4, minW: 3, minH: 3 },
+  { i: "briefing", x: 3, y: 7, w: 3, h: 3, minW: 3, minH: 2 },
+  { i: "radar", x: 6, y: 7, w: 3, h: 3, minW: 3, minH: 2 },
 ];
 
 interface DashboardData {
@@ -41,6 +46,8 @@ interface DashboardData {
   analyses: { quote: StockQuote; analysis: StockAnalysis }[];
   radarCount: number;
   briefing: DailyBriefing;
+  news: NewsItem[];
+  investors: Array<{ id: string; name: string; firm: string; topSymbol: string | null }>;
   portfolio: {
     totalValue: number;
     unrealizedPnL: number;
@@ -98,6 +105,8 @@ export function DashboardGrid({ data }: { data: DashboardData }) {
     agents: <AgentConsensusWidget analyses={data.analyses} />,
     briefing: <DailyBriefingWidget briefing={data.briefing} />,
     radar: <RadarPreviewWidget matchCount={data.radarCount} />,
+    news: <NewsFeedWidget news={data.news} />,
+    investors: <InvestorsWidget investors={data.investors} />,
   };
 
   return (

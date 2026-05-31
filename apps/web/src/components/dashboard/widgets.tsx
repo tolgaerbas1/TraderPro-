@@ -5,6 +5,10 @@ import { Card, ChangeCell, ConsensusBadge, Badge } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis, MarketIndex } from "@/types";
+import type { NewsItem } from "@/lib/news/types";
+import type { Investor } from "@/lib/investors/data";
+import { impactLabel, impactColor } from "@/lib/news/sentiment";
+import { TrendingUp, TrendingDown, Users } from "lucide-react";
 
 export function MarketSummaryWidget({ indices }: { indices: MarketIndex[] }) {
   const { t } = useLanguage();
@@ -224,6 +228,77 @@ export function TopMoversWidget({ quotes }: { quotes: StockQuote[] }) {
             </Link>
           ))}
         </div>
+      </div>
+    </Card>
+  );
+}
+
+export function NewsFeedWidget({ news }: { news: NewsItem[] }) {
+  const { lang } = useLanguage();
+  return (
+    <Card
+      title={lang === "tr" ? "Son Haberler" : "Latest News"}
+      action={
+        <Link href="/news" className="text-xs text-emerald-600 hover:underline">
+          {lang === "tr" ? "Tümü" : "View all"}
+        </Link>
+      }
+    >
+      <div className="space-y-2.5">
+        {news.slice(0, 5).map((item) => (
+          <Link
+            key={item.id}
+            href={`/stock/${item.symbol}`}
+            className="flex items-start gap-2 rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+          >
+            <span className={`mt-0.5 shrink-0 rounded px-1 py-0.5 text-[10px] font-medium ${impactColor(item.impactScore)}`}>
+              {impactLabel(item.impactScore, lang).split(" ")[0]}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-xs">{lang === "tr" ? item.titleTr : item.titleEn}</p>
+              <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                <span className="rounded bg-emerald-100 px-1 font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                  {item.symbol}
+                </span>
+                <span>{item.source}</span>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+export function InvestorsWidget({ investors }: { investors: Array<{ id: string; name: string; firm: string; topSymbol: string | null }> }) {
+  const { lang } = useLanguage();
+  return (
+    <Card
+      title={lang === "tr" ? "Ünlü Yatırımcılar" : "Famous Investors"}
+      action={
+        <Link href="/investors" className="text-xs text-emerald-600 hover:underline">
+          {lang === "tr" ? "Tümü" : "View all"}
+        </Link>
+      }
+    >
+      <div className="space-y-2">
+        {investors.slice(0, 4).map((inv) => (
+          <Link
+            key={inv.id}
+            href={`/investors/${inv.id}`}
+            className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+          >
+            <div>
+              <span className="text-sm font-medium">{inv.name}</span>
+              <div className="text-[10px] text-zinc-400">{inv.firm}</div>
+            </div>
+            {inv.topSymbol && (
+              <span className="rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">
+                {inv.topSymbol}
+              </span>
+            )}
+          </Link>
+        ))}
       </div>
     </Card>
   );
