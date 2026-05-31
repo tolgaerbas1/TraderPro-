@@ -43,6 +43,14 @@ export function Sidebar() {
   const pathname = usePathname();
   const { t } = useLanguage();
   const { open, setOpen } = useSidebar();
+  const [brokerLabel, setBrokerLabel] = useState("...");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((d) => setBrokerLabel(d.mode === "ibkr" ? "IBKR · Live" : "Mock Broker"))
+      .catch(() => setBrokerLabel("Mock Broker"));
+  }, []);
 
   const close = useCallback(() => setOpen(false), [setOpen]);
 
@@ -97,8 +105,13 @@ export function Sidebar() {
           })}
         </nav>
         <div className="border-t border-zinc-200 p-3 dark:border-zinc-800">
-          <div className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-            Mock Broker · IBKR soon
+          <div className={cn(
+            "rounded-lg px-3 py-2 text-xs",
+            brokerLabel.startsWith("IBKR")
+              ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300"
+              : "bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300"
+          )}>
+            {brokerLabel}
           </div>
         </div>
       </aside>

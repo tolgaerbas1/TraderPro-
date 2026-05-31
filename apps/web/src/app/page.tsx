@@ -2,7 +2,7 @@ import { AppShell } from "@/components/layout/sidebar";
 import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
 import { getWatchlistQuotes, getMarketIndices, runRadarScan } from "@/lib/market-data";
 import { analyzeWatchlist, buildBriefingFromAnalyses } from "@/lib/agents/engine";
-import { broker } from "@/lib/broker/instance";
+import { getBroker } from "@/lib/broker/instance";
 
 async function getDashboardData() {
   const [quotes, indices, radarResults, fullAnalyses] = await Promise.all([
@@ -33,7 +33,8 @@ async function getDashboardData() {
   }));
 
   const briefing = await buildBriefingFromAnalyses(fullAnalyses);
-  const portfolio = await broker.getPortfolio();
+  const b = await getBroker();
+  const portfolio = await b.getPortfolio();
 
   return {
     quotes,

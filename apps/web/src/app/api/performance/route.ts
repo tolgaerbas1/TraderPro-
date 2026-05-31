@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { broker } from "@/lib/broker/instance";
+import { getBroker } from "@/lib/broker/instance";
 import {
   buildAllocation,
   buildPnLHistory,
@@ -9,9 +9,10 @@ import {
 import type { PerformanceReport } from "@/types";
 
 export async function GET() {
-  const portfolio = await broker.getPortfolio();
-  const closedTrades = await broker.getClosedTrades();
-  const orders = await broker.getOrders();
+  const b = await getBroker();
+  const portfolio = await b.getPortfolio();
+  const closedTrades = await b.getClosedTrades();
+  const orders = await b.getOrders();
 
   const history = buildPnLHistory(portfolio.totalValue, portfolio.totalCost);
   const allocation = buildAllocation(portfolio);

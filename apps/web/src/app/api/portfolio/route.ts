@@ -1,16 +1,18 @@
 import { NextResponse } from "next/server";
-import { broker } from "@/lib/broker/instance";
+import { getBroker } from "@/lib/broker/instance";
 
 export async function GET() {
-  const portfolio = await broker.getPortfolio();
-  const orders = await broker.getOrders();
-  const closedTrades = await broker.getClosedTrades();
+  const b = await getBroker();
+  const portfolio = await b.getPortfolio();
+  const orders = await b.getOrders();
+  const closedTrades = await b.getClosedTrades();
   return NextResponse.json({ portfolio, orders, closedTrades });
 }
 
 export async function POST(req: Request) {
+  const b = await getBroker();
   const body = await req.json();
-  const order = await broker.placeOrder({
+  const order = await b.placeOrder({
     symbol: body.symbol.toUpperCase(),
     side: body.side,
     quantity: Number(body.quantity),
@@ -18,7 +20,7 @@ export async function POST(req: Request) {
     limitPrice: body.limitPrice ? Number(body.limitPrice) : undefined,
     note: body.note,
   });
-  const portfolio = await broker.getPortfolio();
-  const closedTrades = await broker.getClosedTrades();
+  const portfolio = await b.getPortfolio();
+  const closedTrades = await b.getClosedTrades();
   return NextResponse.json({ order, portfolio, closedTrades });
 }
