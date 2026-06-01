@@ -14,10 +14,12 @@ import {
   TrendingUp,
   Menu,
   X,
+  BellRing,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
 import { CommandPalette } from "@/components/ui/command-palette";
+import { ShortcutsPanel } from "@/components/ui/shortcuts-panel";
 
 const navItems = [
   { href: "/", icon: LayoutDashboard, key: "dashboard" as const },
@@ -26,6 +28,7 @@ const navItems = [
   { href: "/portfolio", icon: Wallet, key: "portfolio" as const },
   { href: "/performance", icon: BarChart3, key: "performance" as const },
   { href: "/agents", icon: Bot, key: "agents" as const },
+  { href: "/notifications", icon: BellRing, key: "notifications" as const, badge: true },
   { href: "/settings", icon: Settings, key: "settings" as const },
 ];
 
@@ -45,12 +48,26 @@ export function Sidebar() {
   const { t } = useLanguage();
   const { open, setOpen } = useSidebar();
   const [brokerLabel, setBrokerLabel] = useState("...");
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
       .then((d) => setBrokerLabel(d.mode === "ibkr" ? "IBKR · Live" : "Mock Broker"))
       .catch(() => setBrokerLabel("Mock Broker"));
+  }, []);
+
+  useEffect(() => {
+    const check = () => {
+      try {
+        const notifications = JSON.parse(localStorage.getItem("traderpro-notifications") ?? "[]");
+        setUnreadCount(notifications.filter((n: { read?: boolean }) => !n.read).length);
+      } catch { /* */ }
+    };
+    check();
+    const interval = setInterval(check, 3000);
+    window.addEventListener("traderpro-notif", check);
+    return () => { clearInterval(interval); window.removeEventListener("traderpro-notif", check); };
   }, []);
 
   const close = useCallback(() => setOpen(false), [setOpen]);
@@ -86,7 +103,7 @@ export function Sidebar() {
           </button>
         </div>
         <nav className="flex flex-1 flex-col gap-1 p-3">
-          {navItems.map(({ href, icon: Icon, key }) => {
+          {navItems.map(({ href, icon: Icon, key, badge }) => {
             const active = pathname === href || (href !== "/" && pathname.startsWith(href));
             return (
               <Link
@@ -100,7 +117,15 @@ export function Sidebar() {
                 )}
               >
                 <Icon className="h-4 w-4" />
-                {t.nav[key]}
+                <span className="flex-1">{t.nav[key]}</span>
+                {badge && unreadCount > 0 && (
+                  <span className={cn(
+                    "flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold",
+                    active ? "bg-white text-emerald-600" : "bg-emerald-600 text-white"
+                  )}>
+                    {unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -137,6 +162,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="min-h-screen p-6 pt-14 lg:ml-56 lg:pt-6">{children}</main>
         <CommandPalette />
+        <ShortcutsPanel />
       </div>
     </SidebarContext.Provider>
   );

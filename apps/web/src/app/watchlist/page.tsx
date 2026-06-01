@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/toast";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis } from "@/types";
+import { Download, Upload } from "lucide-react";
 
 type WatchlistTab = "top10" | "nyse" | "custom";
 
@@ -66,6 +67,43 @@ export default function WatchlistPage() {
     saveCustom(updated);
   }
 
+  function exportCsv() {
+    const csv = "Symbol\n" + rows.map((r) => r.quote.symbol).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `traderpro-watchlist-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast(lang === "tr" ? "CSV indirildi" : "CSV exported");
+  }
+
+  function importCsv() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = reader.result as string;
+        const symbols = text
+          .split("\n")
+          .slice(1)
+          .map((line) => line.split(",")[0]?.trim().toUpperCase())
+          .filter(Boolean);
+        const merged = [...new Set([...customSymbols, ...symbols])];
+        setCustomSymbols(merged);
+        saveCustom(merged);
+        toast(`${symbols.length} ${lang === "tr" ? "sembol içe aktarıldı" : "symbols imported"}`);
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   return (
     <AppShell>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -104,9 +142,17 @@ export default function WatchlistPage() {
             {lang === "tr" ? "Ekle" : "Add"}
           </button>
           {customSymbols.length > 0 && (
-            <span className="self-center text-xs text-zinc-500">
-              {customSymbols.length} {lang === "tr" ? "sembol" : "symbols"}
-            </span>
+            <>
+              <button onClick={exportCsv} className="flex items-center gap-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700" title={lang === "tr" ? "CSV Dışa Aktar" : "Export CSV"}>
+                <Download className="h-4 w-4" />
+              </button>
+              <button onClick={importCsv} className="flex items-center gap-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700" title={lang === "tr" ? "CSV İçe Aktar" : "Import CSV"}>
+                <Upload className="h-4 w-4" />
+              </button>
+              <span className="self-center text-xs text-zinc-500">
+                {customSymbols.length} {lang === "tr" ? "sembol" : "symbols"}
+              </span>
+            </>
           )}
         </div>
       )}

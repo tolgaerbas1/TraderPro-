@@ -30,6 +30,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const addToast = useCallback((message: string, variant: ToastVariant = "success") => {
     const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     setToasts((prev) => [...prev, { id, message, variant }]);
+
+    try {
+      const existing = JSON.parse(localStorage.getItem("traderpro-notifications") ?? "[]");
+      existing.unshift({ id, message, type: variant, read: false, createdAt: new Date().toISOString() });
+      localStorage.setItem("traderpro-notifications", JSON.stringify(existing.slice(0, 100)));
+      window.dispatchEvent(new Event("traderpro-notif"));
+    } catch { /* */ }
   }, []);
 
   const removeToast = useCallback((id: string) => {

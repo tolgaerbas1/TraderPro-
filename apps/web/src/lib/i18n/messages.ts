@@ -10,6 +10,7 @@ export const messages = {
       portfolio: "Portfolio",
       performance: "P&L Analysis",
       agents: "Agents",
+      notifications: "Notifications",
       settings: "Settings",
     },
     dashboard: {
@@ -149,6 +150,7 @@ export const messages = {
       portfolio: "Portföy",
       performance: "K/Z Analizi",
       agents: "Agentlar",
+      notifications: "Bildirimler",
       settings: "Ayarlar",
     },
     dashboard: {
