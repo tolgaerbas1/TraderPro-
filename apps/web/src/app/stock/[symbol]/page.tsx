@@ -6,17 +6,10 @@ import { AppShell } from "@/components/layout/sidebar";
 import { Card, ChangeCell } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AgentPanel } from "@/components/agents/agent-panel";
+import { StockChart } from "@/components/chart/stock-chart";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis } from "@/types";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
 
 export default function StockDetailPage({ params }: { params: Promise<{ symbol: string }> }) {
   const [symbol, setSymbol] = useState("");
@@ -56,11 +49,6 @@ export default function StockDetailPage({ params }: { params: Promise<{ symbol: 
     );
   }
 
-  const chartData = Array.from({ length: 30 }, (_, i) => ({
-    day: i + 1,
-    price: quote.price * (0.92 + Math.random() * 0.16 + (i / 30) * 0.05),
-  }));
-
   return (
     <AppShell>
       <div className="mb-4 flex gap-4">
@@ -91,15 +79,8 @@ export default function StockDetailPage({ params }: { params: Promise<{ symbol: 
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card title={t.stock.chart} className="lg:col-span-2">
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData}>
-              <XAxis dataKey="day" hide />
-              <YAxis domain={["auto", "auto"]} tickFormatter={(v) => `$${v.toFixed(0)}`} width={60} />
-              <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              <Line type="monotone" dataKey="price" stroke="#059669" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+        <Card title={t.stock.chart} className="lg:col-span-2 overflow-hidden">
+          <StockChart symbol={quote.symbol} />
         </Card>
 
         <div className="lg:col-span-1">

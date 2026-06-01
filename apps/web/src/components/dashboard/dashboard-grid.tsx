@@ -13,12 +13,14 @@ import {
   DailyBriefingWidget,
   NewsFeedWidget,
   InvestorsWidget,
+  EarningsWidget,
 } from "./widgets";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis, MarketIndex } from "@/types";
 import type { DailyBriefing } from "@/lib/agents/types";
 import type { NewsItem } from "@/lib/news/types";
+import type { EarningsEvent } from "@/lib/earnings/data";
 
 const GridLayout = dynamic(
   () => import("react-grid-layout/legacy").then((m) => m.default),
@@ -38,6 +40,7 @@ const DEFAULT_LAYOUT: LayoutItem[] = [
   { i: "agents", x: 9, y: 3, w: 3, h: 4, minW: 3, minH: 3 },
   { i: "briefing", x: 3, y: 7, w: 3, h: 3, minW: 3, minH: 2 },
   { i: "radar", x: 6, y: 7, w: 3, h: 3, minW: 3, minH: 2 },
+  { i: "earnings", x: 9, y: 7, w: 3, h: 3, minW: 3, minH: 2 },
 ];
 
 interface DashboardData {
@@ -48,6 +51,7 @@ interface DashboardData {
   briefing: DailyBriefing;
   news: NewsItem[];
   investors: Array<{ id: string; name: string; firm: string; topSymbol: string | null }>;
+  earnings: EarningsEvent[];
   portfolio: {
     totalValue: number;
     unrealizedPnL: number;
@@ -107,6 +111,7 @@ export function DashboardGrid({ data }: { data: DashboardData }) {
     radar: <RadarPreviewWidget matchCount={data.radarCount} />,
     news: <NewsFeedWidget news={data.news} />,
     investors: <InvestorsWidget investors={data.investors} />,
+    earnings: <EarningsWidget events={data.earnings} />,
   };
 
   return (

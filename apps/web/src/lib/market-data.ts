@@ -2,7 +2,117 @@ import type { StockAnalysis, StockQuote, ConsensusAction } from "@/types";
 import { analyzeStock } from "@/lib/agents/engine";
 import { DEFAULT_WATCHLIST } from "./stocks";
 
-/** Fallback quotes when live data unavailable */
+const CACHE_TTL = 300_000;
+const cache = new Map<string, { data: Partial<StockQuote>; ts: number }>();
+
+let lastBatchTime = 0;
+const BATCH_COOLDOWN = 2000;
+
+function getCached(symbol: string): Partial<StockQuote> | null {
+  const entry = cache.get(symbol);
+  if (entry && Date.now() - entry.ts < CACHE_TTL) return entry.data;
+  cache.delete(symbol);
+  return null;
+}
+
+function setCache(symbol: string, data: Partial<StockQuote>) {
+  cache.set(symbol, { data, ts: Date.now() });
+}
+
+async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3, delay = 1000): Promise<T> {
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await new Promise((r) => setTimeout(r, delay * (i + 1)));
+    }
+  }
+  throw new Error("retry failed");
+}
+
+async function fetchYahooQuote(symbol: string): Promise<Partial<StockQuote> | null> {
+  const cached = getCached(symbol);
+  if (cached) return cached;
+
+  try {
+    const yahooFinance = await import("yahoo-finance2");
+    const mod = yahooFinance.default ?? yahooFinance;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const quote = (await retryWithBackoff(() => mod.quote(symbol))) as any;
+
+    if (!quote?.regularMarketPrice) return null;
+
+    const data: Partial<StockQuote> = {
+      price: quote.regularMarketPrice as number,
+      changePercent: (quote.regularMarketChangePercent as number) ?? 0,
+      changeWeek: undefined,
+      volume: quote.regularMarketVolume as number | undefined,
+      marketCap: quote.marketCap as number | undefined,
+      pe: (quote.trailingPE as number) ?? null,
+      pb: (quote.priceToBook as number) ?? null,
+      high52w: quote.fiftyTwoWeekHigh as number | undefined,
+      low52w: quote.fiftyTwoWeekLow as number | undefined,
+    };
+
+    setCache(symbol, data);
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchYahooQuotesBatch(symbols: string[]): Promise<Map<string, Partial<StockQuote> | null>> {
+  const result = new Map<string, Partial<StockQuote> | null>();
+  const uncached = symbols.filter((s) => !getCached(s));
+
+  for (const s of symbols) {
+    const cached = getCached(s);
+    if (cached) result.set(s, cached);
+  }
+
+  if (uncached.length === 0) return result;
+
+  const now = Date.now();
+  if (now - lastBatchTime < BATCH_COOLDOWN) {
+    await new Promise((r) => setTimeout(r, BATCH_COOLDOWN - (now - lastBatchTime)));
+  }
+
+  try {
+    const yahooFinance = await import("yahoo-finance2");
+    const mod = yahooFinance.default ?? yahooFinance;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const quotes = (await retryWithBackoff(() => mod.quote(uncached))) as Map<string, any> | any[];
+
+    if (Array.isArray(quotes)) {
+      for (const q of quotes) {
+        const sym = q?.symbol as string;
+        if (!sym || !q?.regularMarketPrice) continue;
+        const data: Partial<StockQuote> = {
+          price: q.regularMarketPrice as number,
+          changePercent: (q.regularMarketChangePercent as number) ?? 0,
+          volume: q.regularMarketVolume as number | undefined,
+          marketCap: q.marketCap as number | undefined,
+          pe: (q.trailingPE as number) ?? null,
+          pb: (q.priceToBook as number) ?? null,
+          high52w: q.fiftyTwoWeekHigh as number | undefined,
+          low52w: q.fiftyTwoWeekLow as number | undefined,
+        };
+        setCache(sym, data);
+        result.set(sym, data);
+      }
+    }
+    lastBatchTime = Date.now();
+  } catch {
+    for (const s of uncached) {
+      result.set(s, null);
+    }
+  }
+
+  return result;
+}
 const MOCK_BASE: Record<string, Partial<StockQuote>> = {
   NVDA: { price: 135.5, changePercent: 1.45, changeWeek: 3.2, pe: 45, roe: 115, pb: 25 },
   GOOGL: { price: 176.2, changePercent: 0.82, changeWeek: 2.1, pe: 24, roe: 28, pb: 6.5 },
@@ -17,6 +127,16 @@ const MOCK_BASE: Record<string, Partial<StockQuote>> = {
   SPY: { price: 580.0, changePercent: 0.35, changeWeek: 1.1, pe: null, roe: null, pb: null },
   QQQ: { price: 505.0, changePercent: 0.52, changeWeek: 1.4, pe: null, roe: null, pb: null },
   DIA: { price: 425.0, changePercent: 0.28, changeWeek: 0.9, pe: null, roe: null, pb: null },
+  "BRK.B": { price: 465.0, changePercent: 0.22, changeWeek: 1.5, pe: 12, roe: 18, pb: 1.5 },
+  JPM: { price: 265.0, changePercent: 0.48, changeWeek: 2.2, pe: 12, roe: 16, pb: 1.8 },
+  LLY: { price: 880.0, changePercent: 1.2, changeWeek: 3.5, pe: 58, roe: 42, pb: 15 },
+  XOM: { price: 125.0, changePercent: -0.15, changeWeek: 0.8, pe: 14, roe: 22, pb: 2.2 },
+  WMT: { price: 98.5, changePercent: 0.65, changeWeek: 1.4, pe: 28, roe: 25, pb: 6 },
+  V: { price: 355.0, changePercent: 0.42, changeWeek: 1.8, pe: 32, roe: 48, pb: 14 },
+  UNH: { price: 565.0, changePercent: -0.28, changeWeek: -0.5, pe: 21, roe: 25, pb: 5 },
+  MA: { price: 525.0, changePercent: 0.55, changeWeek: 2.1, pe: 38, roe: 55, pb: 16 },
+  JNJ: { price: 172.0, changePercent: 0.12, changeWeek: 0.6, pe: 16, roe: 28, pb: 5 },
+  HD: { price: 415.0, changePercent: 0.75, changeWeek: 2.8, pe: 24, roe: 45, pb: 30 },
 };
 
 function metaFor(symbol: string) {
@@ -56,38 +176,14 @@ function buildQuote(symbol: string, live?: Partial<StockQuote>): StockQuote {
   };
 }
 
-async function fetchYahooQuote(symbol: string): Promise<Partial<StockQuote> | null> {
-  try {
-    const yahooFinance = await import("yahoo-finance2");
-    const mod = yahooFinance.default ?? yahooFinance;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const quote = (await mod.quote(symbol)) as any;
-
-    if (!quote?.regularMarketPrice) return null;
-
-    return {
-      price: quote.regularMarketPrice as number,
-      changePercent: (quote.regularMarketChangePercent as number) ?? 0,
-      changeWeek: undefined,
-      volume: quote.regularMarketVolume as number | undefined,
-      marketCap: quote.marketCap as number | undefined,
-      pe: (quote.trailingPE as number) ?? null,
-      pb: (quote.priceToBook as number) ?? null,
-      high52w: quote.fiftyTwoWeekHigh as number | undefined,
-      low52w: quote.fiftyTwoWeekLow as number | undefined,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export async function getStockQuote(symbol: string): Promise<StockQuote> {
   const live = await fetchYahooQuote(symbol);
   return buildQuote(symbol, live ?? undefined);
 }
 
 export async function getStockQuotes(symbols: string[]): Promise<StockQuote[]> {
-  return Promise.all(symbols.map(getStockQuote));
+  const batch = await fetchYahooQuotesBatch(symbols);
+  return symbols.map((s) => buildQuote(s, batch.get(s) ?? undefined));
 }
 
 export async function getWatchlistQuotes(): Promise<StockQuote[]> {

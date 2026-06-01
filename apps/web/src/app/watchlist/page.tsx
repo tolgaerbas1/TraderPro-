@@ -5,27 +5,111 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/sidebar";
 import { Card, ChangeCell, ConsensusBadge } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis } from "@/types";
 
+type WatchlistTab = "top10" | "nyse" | "custom";
+
+const STORAGE_KEY = "traderpro-custom-watchlist";
+
+function loadCustom(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveCustom(symbols: string[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(symbols));
+}
+
 export default function WatchlistPage() {
   const { t, lang } = useLanguage();
+  const { toast } = useToast();
   const [rows, setRows] = useState<{ quote: StockQuote; analysis: StockAnalysis }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<WatchlistTab>("top10");
+  const [customSymbols, setCustomSymbols] = useState<string[]>([]);
+  const [newSymbol, setNewSymbol] = useState("");
 
   useEffect(() => {
-    fetch("/api/radar")
+    setCustomSymbols(loadCustom());
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    const params = tab === "nyse" ? "?list=nyse" : tab === "custom" && customSymbols.length > 0 ? `?symbols=${customSymbols.join(",")}` : "";
+    fetch(`/api/radar${params}`)
       .then((r) => r.json())
       .then((d) => {
         setRows(d.results ?? []);
         setLoading(false);
       });
-  }, []);
+  }, [tab, customSymbols]);
+
+  function addCustom() {
+    const sym = newSymbol.toUpperCase().trim();
+    if (!sym || customSymbols.includes(sym)) return;
+    const updated = [...customSymbols, sym];
+    setCustomSymbols(updated);
+    saveCustom(updated);
+    setNewSymbol("");
+    toast(`${sym} eklendi`);
+  }
+
+  function removeCustom(symbol: string) {
+    const updated = customSymbols.filter((s) => s !== symbol);
+    setCustomSymbols(updated);
+    saveCustom(updated);
+  }
 
   return (
     <AppShell>
-      <h1 className="mb-6 text-2xl font-bold">{t.watchlist.title}</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold">{t.watchlist.title}</h1>
+        <div className="flex gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-800">
+          {([
+            { key: "top10", label: lang === "tr" ? "Top 10" : "Top 10" },
+            { key: "nyse", label: lang === "tr" ? "NYSE Devleri" : "NYSE Giants" },
+            { key: "custom", label: lang === "tr" ? "Özel" : "Custom" },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                tab === key
+                  ? "bg-emerald-600 text-white"
+                  : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === "custom" && (
+        <div className="mb-4 flex gap-2">
+          <input
+            value={newSymbol}
+            onChange={(e) => setNewSymbol(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addCustom()}
+            className="input-field w-32"
+            placeholder="AAPL"
+          />
+          <button onClick={addCustom} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white">
+            {lang === "tr" ? "Ekle" : "Add"}
+          </button>
+          {customSymbols.length > 0 && (
+            <span className="self-center text-xs text-zinc-500">
+              {customSymbols.length} {lang === "tr" ? "sembol" : "symbols"}
+            </span>
+          )}
+        </div>
+      )}
       <Card>
         {loading ? (
           <div className="space-y-3">

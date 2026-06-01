@@ -1,24 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runRadarScan } from "@/lib/market-data";
+import { runRadarScan, getStockQuotes } from "@/lib/market-data";
+import { getStockAnalysis } from "@/lib/market-data";
+import { DEFAULT_WATCHLIST, NYSE_WATCHLIST } from "@/lib/stocks";
 import type { ConsensusAction } from "@/types";
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const filters = {
-    peMax: body.peMax != null ? Number(body.peMax) : undefined,
-    peMin: body.peMin != null ? Number(body.peMin) : undefined,
-    roeMin: body.roeMin != null ? Number(body.roeMin) : undefined,
-    changeDayMin: body.changeDayMin != null ? Number(body.changeDayMin) : undefined,
-    changeWeekMin: body.changeWeekMin != null ? Number(body.changeWeekMin) : undefined,
-    sector: body.sector || undefined,
-    consensus: (body.consensus as ConsensusAction) || undefined,
-  };
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const list = searchParams.get("list");
+  const symbols = searchParams.get("symbols");
 
-  const results = await runRadarScan(filters);
-  return NextResponse.json({ count: results.length, results });
-}
+  let targetSymbols: string[];
 
-export async function GET() {
-  const results = await runRadarScan({});
+  if (symbols) {
+    targetSymbols = symbols.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  } else if (list === "nyse") {
+    targetSymbols = NYSE_WATCHLIST.map((s) => s.symbol);
+  } else {
+    targetSymbols = DEFAULT_WATCHLIST.map((s) => s.symbol);
+  }
+
+  const quotes = await getStockQuotes(targetSymbols);
+  const results = await Promise.all(
+    quotes.map(async (quote) => {
+      const analysis = await getStockAnalysis(quote.symbol);
+      return { quote, analysis };
+    })
+  );
+
   return NextResponse.json({ count: results.length, results });
 }

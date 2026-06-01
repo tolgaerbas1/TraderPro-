@@ -5,6 +5,7 @@ import { analyzeWatchlist, buildBriefingFromAnalyses } from "@/lib/agents/engine
 import { getBroker } from "@/lib/broker/instance";
 import { getNewsFeed } from "@/lib/news/data";
 import { INVESTORS } from "@/lib/investors/data";
+import { getThisWeekEarnings } from "@/lib/earnings/data";
 
 async function getDashboardData() {
   const [quotes, indices, radarResults, fullAnalyses] = await Promise.all([
@@ -44,6 +45,7 @@ async function getDashboardData() {
     firm,
     topSymbol: topHoldings[0]?.symbol ?? null,
   }));
+  const earnings = getThisWeekEarnings();
 
   return {
     quotes,
@@ -52,6 +54,7 @@ async function getDashboardData() {
     briefing,
     news,
     investors,
+    earnings,
     radarCount: radarResults.length,
     portfolio: {
       totalValue: portfolio.totalValue,

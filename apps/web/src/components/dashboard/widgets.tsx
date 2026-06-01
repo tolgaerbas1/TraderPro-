@@ -7,6 +7,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis, MarketIndex } from "@/types";
 import type { NewsItem } from "@/lib/news/types";
 import type { Investor } from "@/lib/investors/data";
+import type { EarningsEvent } from "@/lib/earnings/data";
 import { impactLabel, impactColor } from "@/lib/news/sentiment";
 import { TrendingUp, TrendingDown, Users } from "lucide-react";
 
@@ -299,6 +300,47 @@ export function InvestorsWidget({ investors }: { investors: Array<{ id: string; 
             )}
           </Link>
         ))}
+      </div>
+    </Card>
+  );
+}
+
+export function EarningsWidget({ events }: { events: EarningsEvent[] }) {
+  const { lang } = useLanguage();
+  return (
+    <Card
+      title={lang === "tr" ? "Kazanç Takvimi" : "Earnings Calendar"}
+      action={
+        <Link href="/earnings" className="text-xs text-emerald-600 hover:underline">
+          {lang === "tr" ? "Tümü" : "View all"}
+        </Link>
+      }
+    >
+      <div className="space-y-2">
+        {events.length === 0 ? (
+          <p className="text-xs text-zinc-400">{lang === "tr" ? "Bu hafta kazanç yok" : "No earnings this week"}</p>
+        ) : (
+          events.slice(0, 4).map((e) => (
+            <Link
+              key={`${e.symbol}-${e.date}`}
+              href={`/stock/${e.symbol}`}
+              className="flex items-center justify-between rounded-lg px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+            >
+              <div>
+                <span className="text-sm font-medium">{e.symbol}</span>
+                <div className="text-[10px] text-zinc-400">{e.name}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs tabular-nums">
+                  {new Date(e.date).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", { month: "short", day: "numeric" })}
+                </div>
+                <Badge variant={e.time === "pre" ? "info" : "warning"}>
+                  {e.time === "pre" ? (lang === "tr" ? "Açılış Öncesi" : "Pre-market") : (lang === "tr" ? "Kapanış Sonrası" : "After-close")}
+                </Badge>
+              </div>
+            </Link>
+          ))
+        )}
       </div>
     </Card>
   );
