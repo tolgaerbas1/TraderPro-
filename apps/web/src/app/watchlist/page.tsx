@@ -11,7 +11,7 @@ import { useLanguage } from "@/hooks/useLanguage";
 import type { StockQuote, StockAnalysis } from "@/types";
 import { Download, Upload } from "lucide-react";
 
-type WatchlistTab = "top10" | "nyse" | "custom";
+type WatchlistTab = "top10" | "top100" | "nyse" | "custom";
 
 const STORAGE_KEY = "traderpro-custom-watchlist";
 
@@ -31,6 +31,7 @@ export default function WatchlistPage() {
   const { t, lang } = useLanguage();
   const { toast } = useToast();
   const [rows, setRows] = useState<{ quote: StockQuote; analysis: StockAnalysis }[]>([]);
+  const [sourceCounts, setSourceCounts] = useState({ live: 0, cached: 0, mock: 0 });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<WatchlistTab>("top10");
   const [customSymbols, setCustomSymbols] = useState<string[]>([]);
@@ -42,11 +43,19 @@ export default function WatchlistPage() {
 
   useEffect(() => {
     setLoading(true);
-    const params = tab === "nyse" ? "?list=nyse" : tab === "custom" && customSymbols.length > 0 ? `?symbols=${customSymbols.join(",")}` : "";
+    const params =
+      tab === "nyse"
+        ? "?list=nyse"
+        : tab === "custom" && customSymbols.length > 0
+          ? `?symbols=${customSymbols.join(",")}`
+          : tab === "top100"
+            ? "?list=top100"
+            : "";
     fetch(`/api/radar${params}`)
       .then((r) => r.json())
       .then((d) => {
         setRows(d.results ?? []);
+        setSourceCounts(d.sourceCounts ?? { live: 0, cached: 0, mock: 0 });
         setLoading(false);
       });
   }, [tab, customSymbols]);
@@ -111,6 +120,7 @@ export default function WatchlistPage() {
         <div className="flex gap-1 rounded-lg border border-zinc-200 p-1 dark:border-zinc-800">
           {([
             { key: "top10", label: lang === "tr" ? "Top 10" : "Top 10" },
+            { key: "top100", label: lang === "tr" ? "İlk 100" : "Top 100" },
             { key: "nyse", label: lang === "tr" ? "NYSE Devleri" : "NYSE Giants" },
             { key: "custom", label: lang === "tr" ? "Özel" : "Custom" },
           ] as const).map(({ key, label }) => (
@@ -127,6 +137,21 @@ export default function WatchlistPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+        <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/20 dark:text-emerald-300">
+          Live: {sourceCounts.live}
+        </span>
+        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
+          Cached: {sourceCounts.cached}
+        </span>
+        <span className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+          Mock: {sourceCounts.mock}
+        </span>
+        <span>
+          {lang === "tr" ? "Veri kaynağı otomatik seçiliyor; canlı veri yoksa cache ya da mock kullanılıyor." : "Source is chosen automatically; live data falls back to cache or mock when unavailable."}
+        </span>
       </div>
 
       {tab === "custom" && (

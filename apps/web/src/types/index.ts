@@ -29,6 +29,7 @@ export interface StockQuote {
   high52w: number;
   low52w: number;
   updatedAt: string;
+  dataSource?: "live" | "cached" | "mock";
 }
 
 export interface AgentInsight {

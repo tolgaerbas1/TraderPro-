@@ -31,9 +31,11 @@ async function retryWithBackoff<T>(fn: () => Promise<T>, retries = 3, delay = 10
   throw new Error("retry failed");
 }
 
-async function fetchYahooQuote(symbol: string): Promise<Partial<StockQuote> | null> {
+type QuoteFetchResult = { data: Partial<StockQuote>; source: "live" | "cached" } | null;
+
+async function fetchYahooQuote(symbol: string): Promise<QuoteFetchResult> {
   const cached = getCached(symbol);
-  if (cached) return cached;
+  if (cached) return { data: cached, source: "cached" };
 
   try {
     const yahooFinance = await import("yahoo-finance2");
@@ -57,19 +59,19 @@ async function fetchYahooQuote(symbol: string): Promise<Partial<StockQuote> | nu
     };
 
     setCache(symbol, data);
-    return data;
+    return { data, source: "live" };
   } catch {
     return null;
   }
 }
 
-async function fetchYahooQuotesBatch(symbols: string[]): Promise<Map<string, Partial<StockQuote> | null>> {
-  const result = new Map<string, Partial<StockQuote> | null>();
+async function fetchYahooQuotesBatch(symbols: string[]): Promise<Map<string, QuoteFetchResult>> {
+  const result = new Map<string, QuoteFetchResult>();
   const uncached = symbols.filter((s) => !getCached(s));
 
   for (const s of symbols) {
     const cached = getCached(s);
-    if (cached) result.set(s, cached);
+    if (cached) result.set(s, { data: cached, source: "cached" });
   }
 
   if (uncached.length === 0) return result;
@@ -101,7 +103,7 @@ async function fetchYahooQuotesBatch(symbols: string[]): Promise<Map<string, Par
           low52w: q.fiftyTwoWeekLow as number | undefined,
         };
         setCache(sym, data);
-        result.set(sym, data);
+        result.set(sym, { data, source: "live" });
       }
     }
     lastBatchTime = Date.now();
@@ -148,7 +150,7 @@ function metaFor(symbol: string) {
   };
 }
 
-function buildQuote(symbol: string, live?: Partial<StockQuote>): StockQuote {
+function buildQuote(symbol: string, live?: Partial<StockQuote>, source: StockQuote["dataSource"] = "mock"): StockQuote {
   const meta = metaFor(symbol);
   const mock = MOCK_BASE[symbol] ?? { price: 100, changePercent: 0, changeWeek: 0, pe: 20, roe: 15, pb: 3 };
   const price = live?.price ?? mock.price ?? 100;
@@ -173,17 +175,21 @@ function buildQuote(symbol: string, live?: Partial<StockQuote>): StockQuote {
     high52w: live?.high52w ?? price * 1.15,
     low52w: live?.low52w ?? price * 0.75,
     updatedAt: new Date().toISOString(),
+    dataSource: source,
   };
 }
 
 export async function getStockQuote(symbol: string): Promise<StockQuote> {
   const live = await fetchYahooQuote(symbol);
-  return buildQuote(symbol, live ?? undefined);
+  return buildQuote(symbol, live?.data, live?.source ?? "mock");
 }
 
 export async function getStockQuotes(symbols: string[]): Promise<StockQuote[]> {
   const batch = await fetchYahooQuotesBatch(symbols);
-  return symbols.map((s) => buildQuote(s, batch.get(s) ?? undefined));
+  return symbols.map((s) => {
+    const entry = batch.get(s);
+    return buildQuote(s, entry?.data ?? undefined, entry?.source ?? "mock");
+  });
 }
 
 export async function getWatchlistQuotes(): Promise<StockQuote[]> {
