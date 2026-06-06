@@ -6,9 +6,19 @@ import { runRiskAgent } from "./risk-agent";
 import { runCoordinator } from "./coordinator";
 import { recordPrediction, getAccuracyStats } from "./accuracy";
 import type { FullStockAnalysis, AgentContext, DailyBriefing } from "./types";
-import type { StockQuote } from "@/types";
+import type { MarketIndex, StockQuote } from "@/types";
 import { getStockQuote, getWatchlistQuotes, getMarketIndices } from "@/lib/market-data";
 import { DEFAULT_WATCHLIST } from "@/lib/stocks";
+
+const MARKET_SNAPSHOT_TTL = 30_000;
+let marketSnapshotCache: { ts: number; value: MarketSnapshot } | null = null;
+
+interface MarketSnapshot {
+  spyChangePercent: number;
+  qqqChangePercent: number;
+  diaChangePercent: number;
+  marketMomentum: number;
+}
 
 function detectRegime(spyChange: number): AgentContext["marketRegime"] {
   if (spyChange > 0.3) return "risk_on";
@@ -17,14 +27,37 @@ function detectRegime(spyChange: number): AgentContext["marketRegime"] {
 }
 
 async function buildContext(quote: StockQuote): Promise<AgentContext> {
-  const indices = await getMarketIndices();
-  const spy = indices.find((i) => i.symbol === "SPY");
-  const spyChange = spy?.changePercent ?? 0;
+  const snapshot = await getMarketSnapshot();
   return {
     quote,
-    marketRegime: detectRegime(spyChange),
-    spyChangePercent: spyChange,
+    marketRegime: detectRegime(snapshot.spyChangePercent),
+    spyChangePercent: snapshot.spyChangePercent,
+    qqqChangePercent: snapshot.qqqChangePercent,
+    diaChangePercent: snapshot.diaChangePercent,
+    marketMomentum: snapshot.marketMomentum,
   };
+}
+
+function summarizeMarketMomentum(indices: MarketIndex[]): MarketSnapshot {
+  const spy = indices.find((i) => i.symbol === "SPY");
+  const qqq = indices.find((i) => i.symbol === "QQQ");
+  const dia = indices.find((i) => i.symbol === "DIA");
+  const spyChangePercent = spy?.changePercent ?? 0;
+  const qqqChangePercent = qqq?.changePercent ?? 0;
+  const diaChangePercent = dia?.changePercent ?? 0;
+  const marketMomentum = (spyChangePercent * 0.45) + (qqqChangePercent * 0.35) + (diaChangePercent * 0.2);
+  return { spyChangePercent, qqqChangePercent, diaChangePercent, marketMomentum };
+}
+
+async function getMarketSnapshot(): Promise<MarketSnapshot> {
+  if (marketSnapshotCache && Date.now() - marketSnapshotCache.ts < MARKET_SNAPSHOT_TTL) {
+    return marketSnapshotCache.value;
+  }
+
+  const indices = await getMarketIndices();
+  const value = summarizeMarketMomentum(indices);
+  marketSnapshotCache = { ts: Date.now(), value };
+  return value;
 }
 
 export async function analyzeStock(symbol: string): Promise<FullStockAnalysis> {

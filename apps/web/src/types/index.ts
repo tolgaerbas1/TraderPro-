@@ -25,6 +25,12 @@ export interface StockQuote {
   pe: number | null;
   pb: number | null;
   roe: number | null;
+  beta?: number | null;
+  forwardPe?: number | null;
+  earningsGrowth?: number | null;
+  revenueGrowth?: number | null;
+  profitMargins?: number | null;
+  debtToEquity?: number | null;
   dividendYield: number | null;
   high52w: number;
   low52w: number;

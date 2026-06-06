@@ -9,12 +9,13 @@ import { AgentPanel } from "@/components/agents/agent-panel";
 import { StockChart } from "@/components/chart/stock-chart";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useLanguage } from "@/hooks/useLanguage";
-import type { StockQuote, StockAnalysis } from "@/types";
+import type { StockQuote } from "@/types";
+import type { FullStockAnalysis } from "@/lib/agents/types";
 
 export default function StockDetailPage({ params }: { params: Promise<{ symbol: string }> }) {
   const [symbol, setSymbol] = useState("");
   const [quote, setQuote] = useState<StockQuote | null>(null);
-  const [analysis, setAnalysis] = useState<StockAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<FullStockAnalysis | null>(null);
   const { t } = useLanguage();
 
   useEffect(() => {

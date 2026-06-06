@@ -13,12 +13,24 @@ export interface AgentContext {
   quote: StockQuote;
   marketRegime: "risk_on" | "risk_off" | "neutral";
   spyChangePercent: number;
+  qqqChangePercent: number;
+  diaChangePercent: number;
+  marketMomentum: number;
+}
+
+export interface AgentBreakdown {
+  subScores: Record<string, number>;
+  bullCase: string[];
+  bearCase: string[];
+  risks: string[];
 }
 
 export interface ExtendedAgentInsight extends AgentInsight {
   signals: string[];
   score: number;
   veto?: boolean;
+  breakdown: AgentBreakdown;
+  recommendedPositionPct?: number;
 }
 
 export interface CoordinatorResult {
@@ -31,6 +43,10 @@ export interface CoordinatorResult {
   vetoReason?: string;
   suggestedPositionPct: number;
   conflicts: string[];
+  bullCase: string[];
+  bearCase: string[];
+  keyRisks: string[];
+  regimeContext: string;
 }
 
 export interface FullStockAnalysis {

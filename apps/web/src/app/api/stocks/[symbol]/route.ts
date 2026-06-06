@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getStockQuote, getStockAnalysis } from "@/lib/market-data";
+import { getStockQuote } from "@/lib/market-data";
+import { analyzeStock } from "@/lib/agents/engine";
 
 export async function GET(
   _req: Request,
@@ -9,7 +10,7 @@ export async function GET(
   const upper = symbol.toUpperCase();
   const [quote, analysis] = await Promise.all([
     getStockQuote(upper),
-    getStockAnalysis(upper),
+    analyzeStock(upper),
   ]);
   return NextResponse.json({ quote, analysis });
 }
